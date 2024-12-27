@@ -1,0 +1,2 @@
+# https://youtrack.jetbrains.com/issue/SCL-22803/sbt-shell-does-not-support-.jvmopts-with-add-exports
+# --add-exports java.base/sun.nio.ch=ALL-UNNAMED

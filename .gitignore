@@ -1,0 +1,9 @@
+# IntelliJ
+.idea/
+
+# Build
+.bsp/
+target/
+
+# Project Specific
+docker/.localstack/data

@@ -1,0 +1,32 @@
+
+services:
+  localstack:
+    image: "localstack/localstack:${LOCALSTACK_VERSION}"
+    ports:
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # external services port range
+    environment:
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - DEBUG=${DEBUG:-0}
+    volumes:
+      - "$HOST_LOCALSTACK_DIR:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - localstack
+
+  awscli:
+    image: "amazon/aws-cli:${AWSCLI_VERSION}"
+    stdin_open: true  # docker run -i
+    tty: true         # docker run -t
+    entrypoint: "/bin/bash"
+    environment:
+      - AWS_ACCESS_KEY_ID=mock-id
+      - AWS_SECRET_ACCESS_KEY=mock-secret
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    networks:
+      - localstack
+
+networks:
+  localstack:
+
