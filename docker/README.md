@@ -2,24 +2,16 @@
 
 A docker-compose variant of localstack so we can control the localstack version. Alternatively, you can install localstack cli and awslocal.
 
+
+
 ## Set up LocalStack
 
-1. Start docker container and awscli containers.
-    ```shell
-    docker compose -f docker/compose.yaml up  
-    ```
-2. Log into awscli container.
-    ```shell
-    docker container exec -it  docker-awscli-1 /bin/bash  
-    ```
-3. Run AWS commands.
-    ```shell
-    aws sts get-caller-identity
-    ```
-   
-## Create a SQS queue
-
-```shell
-aws sqs create-queue --queue-name sales-queue
-```
-
+1. Start kafka container.
+   ```shell
+   docker compose -f docker/kafka.yaml up
+   ```
+2. Test connectivity using console producer and consumer.
+   ```shell
+   docker container exec -it kafka-standalone /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic random
+   docker container exec -it kafka-standalone /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic random
+   ```

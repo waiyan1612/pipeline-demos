@@ -4,6 +4,9 @@
 # Build
 .bsp/
 target/
+venv/
 
 # Project Specific
 docker/.localstack/data
+docker/.kafka/data
+docker/.kafka/out

@@ -39,7 +39,7 @@ object DataStream {
     productDataStream.print("product-console-sink")
 
     val salesDataStream = env.fromSource(SourceProvider.getCsvSource(classOf[Sales]),
-      WatermarkStrategy.noWatermarks(), s"eales-csv-source")
+      WatermarkStrategy.noWatermarks(), s"sales-csv-source")
     salesDataStream.print("sales-console-sink")
 
     env.execute(appName)
