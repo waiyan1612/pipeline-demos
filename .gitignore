@@ -6,6 +6,12 @@
 target/
 venv/
 
+# Gradle
+.gradle/
+**/build/
+gradle-app.setting
+!gradle-wrapper.jar # Keep the Gradle wrapper JAR
+
 # Project Specific
 docker/.localstack/data
 docker/.kafka/data

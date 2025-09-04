@@ -1,6 +1,6 @@
 services:
   localstack:
-    image: "localstack/localstack:${LOCALSTACK_VERSION}"
+    image: "localstack/localstack:4.0"
     ports:
       - "4566:4566"            # LocalStack Gateway
       - "4510-4559:4510-4559"  # external services port range
@@ -14,7 +14,7 @@ services:
       - localstack
 
   awscli:
-    image: "amazon/aws-cli:${AWSCLI_VERSION}"
+    image: "amazon/aws-cli:2.22.23"
     stdin_open: true  # docker run -i
     tty: true         # docker run -t
     entrypoint: "/bin/bash"

@@ -11,8 +11,20 @@ A docker-compose variant of localstack so we can control the localstack version.
 2. Log into awscli container.
    ```shell
    docker container exec -it  docker-awscli-1 /bin/bash
-   ```
-3. Run AWS commands.
-   ```shell
    aws sts get-caller-identity
+   ```
+   
+3. Create streams
+   ```shell
+   aws kinesis create-stream --stream-name stream-a --shard-count 1
+   aws kinesis create-stream --stream-name stream-b --shard-count 1
+   aws kinesis create-stream --stream-name stream-ab --shard-count 1
+   ```
+
+4. Write records
+   ```shell
+   aws kinesis put-record --stream-name stream-a --partition-key 1 --cli-binary-format raw-in-base64-out --data '{"id":"1", "value":"one"}'
+   aws kinesis put-record --stream-name stream-a --partition-key 1 --cli-binary-format raw-in-base64-out --data '{"id":"2", "value":"two"}'
+   aws kinesis put-record --stream-name stream-b --partition-key 1 --cli-binary-format raw-in-base64-out --data '{"id":"1", "value":"oneone"}'
+   aws kinesis put-record --stream-name stream-b --partition-key 1 --cli-binary-format raw-in-base64-out --data '{"id":"2", "value":"twotwo"}'
    ```

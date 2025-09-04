@@ -1,10 +1,4 @@
-# LocalStack
-
-A docker-compose variant of localstack so we can control the localstack version. Alternatively, you can install localstack cli and awslocal.
-
-
-
-## Set up LocalStack
+# Kafka
 
 1. Start kafka container.
    ```shell
