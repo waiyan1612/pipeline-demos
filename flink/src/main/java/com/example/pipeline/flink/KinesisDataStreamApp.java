@@ -83,15 +83,68 @@ public class KinesisDataStreamApp {
         Table tableA = tableEnv.fromDataStream(streamA).as("id", "val");
         tableEnv.createTemporaryView("table_a", tableA);
 
-        String joinQuery = """
-                SELECT a.id, a.val as a_val, b.val as b_val
-                FROM
-                    (SELECT id, val FROM table_a) a
-                LEFT JOIN
-                    (SELECT id, `value` as val FROM table_b) b
-                ON a.id = b.id
-            """;
+        KinesisStreamsSource<PayloadC> kdsC = KinesisStreamsSource.<PayloadC>builder()
+                .setSourceConfig(sourceConfig)
+                .setStreamArn("arn:aws:kinesis:us-east-1:000000000000:stream/stream-c")
+                .setDeserializationSchema(new JsonDeserializationSchema<>(PayloadC.class))
+                .build();
+        WatermarkStrategy<PayloadC> watermarkStrategyC = WatermarkStrategy.noWatermarks();
+        DataStream<PayloadC> streamC = env.fromSource(kdsC, watermarkStrategyC, "Stream C")
+                .returns(TypeInformation.of(PayloadC.class));
+        Table tableC = tableEnv.fromDataStream(streamC).as("id", "val");
+        tableEnv.createTemporaryView("table_c", tableC);
 
+        String joinQuery = """
+                WITH
+                    a as (SELECT id, val as a_val FROM table_a),
+                    b as (SELECT id, `value` as b_val FROM table_b),
+                    c as (SELECT id, val as c_val FROM table_c)
+                SELECT
+                    a.id as id,
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id' VALUE a.id,
+                            'a_val' VALUE a.a_val
+                        )
+                    )
+                    AS a_entry_json,
+                    ARRAY_AGG(
+                        ROW(b_val)
+                    ) AS b_entries,
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'c_val' VALUE c.c_val
+                        )
+                    ) AS c_entries_json
+                FROM a
+                LEFT JOIN b ON a.id = b.id
+                LEFT JOIN c ON b.id = c.id
+                WHERE a.id = '1'
+                GROUP BY a.id
+                UNION
+                SELECT
+                    a.id as id,
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id' VALUE a.id,
+                            'a_val' VALUE a.a_val
+                        )
+                    )
+                    AS a_entry_json,
+                    ARRAY_AGG(
+                        ROW(b_val)
+                    ) AS b_entries,
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'c_val' VALUE c.c_val
+                        )
+                    ) AS c_entries_json
+                FROM a
+                LEFT JOIN b ON a.id = b.id
+                LEFT JOIN c ON b.id = c.id
+                WHERE a.id = '2'
+                GROUP BY a.id
+            """;
         /*
             This is an attempt to write to table_ab directly from Table API but this throws
             Table sink 'default_catalog.default_database.table_ab' doesn't support consuming update and delete changes
@@ -117,21 +170,21 @@ public class KinesisDataStreamApp {
 
 
         // This will create a changelog stream with +I, -D etc
-        Table tableAB = tableEnv.sqlQuery(joinQuery);
-        Schema schema = Schema.newBuilder().fromResolvedSchema(tableAB.getResolvedSchema()).build();
-        DataStream<Row> changelogStream = tableEnv.toChangelogStream(tableAB, schema, ChangelogMode.all());
+        Table fatTable = tableEnv.sqlQuery(joinQuery);
+        Schema schema = Schema.newBuilder().fromResolvedSchema(fatTable.getResolvedSchema()).build();
+        DataStream<Row> changelogStream = tableEnv.toChangelogStream(fatTable, schema, ChangelogMode.all());
         changelogStream.print();
 
         Properties kinesisClientProperties = new Properties();
         kinesisClientProperties.putAll(awsConfigs);
-        SerializationSchema<Row> jsonSerializer = new JacksonRowJsonSerializer(tableAB.getResolvedSchema().getColumnNames().toArray(String[]::new));
-        KinesisStreamsSink<Row> kdsAB = KinesisStreamsSink.<Row>builder()
+        SerializationSchema<Row> jsonSerializer = new JacksonRowJsonSerializer(fatTable.getResolvedSchema().getColumnNames().toArray(String[]::new));
+        KinesisStreamsSink<Row> kdsFat = KinesisStreamsSink.<Row>builder()
                 .setKinesisClientProperties(kinesisClientProperties)
-                .setStreamArn("arn:aws:kinesis:us-east-1:000000000000:stream/stream-ab")
+                .setStreamArn("arn:aws:kinesis:us-east-1:000000000000:stream/stream-fat")
                 .setSerializationSchema(jsonSerializer)
                 .setPartitionKeyGenerator(row -> Objects.requireNonNull(row.getField("id")).toString())
                 .build();
-        changelogStream.sinkTo(kdsAB);
+        changelogStream.sinkTo(kdsFat);
 
         env.execute("Kinesis Example");
     }
